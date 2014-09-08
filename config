@@ -1,0 +1,22 @@
+[filter "main_config_live"]
+    clean  = ../filters/_main_config.sh --action clean  --db-domain main
+    smudge = ../filters/_main_config.sh --action smudge --accounts live    --db live    --branch live
+[filter "tests_config_live"]
+    clean  = ../filters/_main_config.sh --action clean  --db-domain tests
+    smudge = ../filters/_main_config.sh --action smudge --accounts sandbox --db test    --branch live
+[filter "main_config_staging"]
+    clean  = ../filters/_main_config.sh --action clean  --db-domain main
+    smudge = ../filters/_main_config.sh --action smudge --accounts sandbox --db staging --branch staging
+[filter "tests_config_staging"]
+    clean  = ../filters/_main_config.sh --action clean  --db-domain tests
+    smudge = ../filters/_main_config.sh --action smudge --accounts sandbox --db staging --branch staging
+[filter "main_config_test"]
+    clean  = ../filters/_main_config.sh --action clean  --db-domain main
+    smudge = ../filters/_main_config.sh --action smudge --accounts sandbox --db test    --branch test
+[filter "tests_config_test"]
+    clean  = ../filters/_main_config.sh --action clean  --db-domain tests
+    smudge = ../filters/_main_config.sh --action smudge --accounts sandbox --db test    --branch test
+[merge "ours"]
+	driver = true
+[merge]
+    renormalize = true

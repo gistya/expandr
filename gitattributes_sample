@@ -1,0 +1,4 @@
+config/app.php filter=main_config_live
+config/framework.php filter=main_config_live
+tests/config/app.php filter=tests_config_live
+tests/config/framework.php filter=tests_config_live
