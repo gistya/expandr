@@ -77,6 +77,8 @@ function framework_smudge() {
 }
 function accounts_smudge_live() {
     sed \
+    -e "s|${LIVE_TD_USERNAME[0]}|${LIVE_TD_USERNAME[1]}|g" \
+    -e "s|${LIVE_TD_PASSWORD[0]}|${LIVE_TD_PASSWORD[1]}|g" \
     -e "s|${LIVE_AWS_ACCESS_KEY_ID[0]}|${LIVE_AWS_ACCESS_KEY_ID[1]}|g" \
     -e "s|${LIVE_AWS_SECRET_ACCESS_KEY[0]}|$(sed_replacement_escape "${LIVE_AWS_SECRET_ACCESS_KEY[1]}")|g" \
     -e "s|${LIVE_APPLICATION_NAME[0]}|${LIVE_APPLICATION_NAME[1]}|g" \
@@ -85,6 +87,8 @@ function accounts_smudge_live() {
 }
 function accounts_smudge_sandbox() {
    sed \
+    -e "s|${SANDBOX_TD_USERNAME[0]}|${SANDBOX_TD_USERNAME[1]}|g" \
+    -e "s|${SANDBOX_TD_PASSWORD[0]}|${SANDBOX_TD_PASSWORD[1]}|g" \
     -e "s|${SANDBOX_AWS_ACCESS_KEY_ID[0]}|${SANDBOX_AWS_ACCESS_KEY_ID[1]}|g" \
     -e "s|${SANDBOX_AWS_SECRET_ACCESS_KEY[0]}|$(sed_replacement_escape "${SANDBOX_AWS_SECRET_ACCESS_KEY[1]}")|g" \
     -e "s|${SANDBOX_APPLICATION_NAME[0]}|${SANDBOX_APPLICATION_NAME[1]}|g" \
@@ -118,6 +122,10 @@ function db_smudge() {
     -e "s|${TESTS_DB_DUMMY_NAME}|${!DB_REAL_NAME}|g" \
     $1
 }
+function email_smudge() {
+    sed \
+    -e "s|${ADMIN_EMAIL[0]}|${ADMIN_EMAIL[1]}|g"
+}
 #
 #
 #
@@ -130,11 +138,13 @@ function framework_clean() {
     -e "s|$(sed_replacement_escape ${FRAMEWORK_DIR_LIVE})|${FRAMEWORK_DIR_DUMMY_NAME}|g" \
     -e "s|$(sed_replacement_escape ${FRAMEWORK_DIR_STAGING})|${FRAMEWORK_DIR_DUMMY_NAME}|g" \
     -e "s|$(sed_replacement_escape ${FRAMEWORK_DIR_TEST})|${FRAMEWORK_DIR_DUMMY_NAME}|g" \
-    -e "s|$(sed_replacement_escape ${FRAMEWORK_DIR_OLD})|${FRAMEWORK_DIR_DUMMY_NAME}|g"
+    -e "s|$(sed_replacement_escape ${FRAMEWORK_DIR_OLD})|${FRAMEWORK_DIR_DUMMY_NAME}|g" \
     $1
 }
 function accounts_clean_live() {
     sed \
+    -e "s|${LIVE_TD_USERNAME[1]}|${LIVE_TD_USERNAME[0]}|g" \
+    -e "s|${LIVE_TD_PASSWORD[1]}|${LIVE_TD_PASSWORD[0]}|g" \
     -e "s|${LIVE_AWS_ACCESS_KEY_ID[1]}|${LIVE_AWS_ACCESS_KEY_ID[0]}|g" \
     -e "s|$(sed_keyword_escape "${LIVE_AWS_SECRET_ACCESS_KEY[1]}")|${LIVE_AWS_SECRET_ACCESS_KEY[0]}|g" \
     -e "${LIVE_APPLICATION_NAME[2]:-""}s|${LIVE_APPLICATION_NAME[1]}|${LIVE_APPLICATION_NAME[0]}|g" \
@@ -143,6 +153,8 @@ function accounts_clean_live() {
 }
 function accounts_clean_sandbox() {
     sed \
+    -e "s|${SANDBOX_TD_USERNAME[1]}|${SANDBOX_TD_USERNAME[0]}|g" \
+    -e "s|${SANDBOX_TD_PASSWORD[1]}|${SANDBOX_TD_PASSWORD[0]}|g" \
     -e "s|${SANDBOX_AWS_ACCESS_KEY_ID[1]}|${SANDBOX_AWS_ACCESS_KEY_ID[0]}|g" \
     -e "s|$(sed_keyword_escape "${SANDBOX_AWS_SECRET_ACCESS_KEY[1]}")|${SANDBOX_AWS_SECRET_ACCESS_KEY[0]}|g" \
     -e "s|${SANDBOX_APPLICATION_NAME[1]}|${SANDBOX_APPLICATION_NAME[0]}|g" \
@@ -161,6 +173,16 @@ function db_clean() {
     -e "s|${TEST_DB_NAME}|${!DB_DUMMY_NAME}|g" \
     $1
 }
+function email_clean() {
+    len=${#ADMIN_EMAIL[@]}
+    for (( i=1; i<${len}; i++ ));
+    do
+        sed \
+        -e "s|${ADMIN_EMAIL[$i]}|${ADMIN_EMAIL[0]}|g"
+    done
+}
+#
+#
 ##uncomment the below commented section to cd to THIS script's dir, in case you want to include any files in its same directory (this was necessary on a Mac but some other systems have easier ways to do this)
 #TARGET_FILE=$0
 #cd `dirname $TARGET_FILE`
@@ -213,21 +235,28 @@ then
                 shift
         esac
     done
-    GIT_INPUT=$1
 fi
-case ${ACTION} in
-    smudge)
-        accounts_smudge ${GIT_INPUT} | \
-        db_smudge | \
-        framework_smudge | \
-        sed \
-        -e "s|${ADMIN_EMAIL[0]}|${ADMIN_EMAIL[1]}|g"
-        ;;
-    clean)
-        accounts_clean ${GIT_INPUT} | \
-        db_clean | \
-        framework_clean | \
-        sed \
-        -e "s|${ADMIN_EMAIL[1]}|${ADMIN_EMAIL[0]}|g"
-        ;;
-esac
+#
+#
+#
+###-THE-MAIN-FILTER-###
+function filter() {
+    case ${ACTION} in
+        smudge)
+            accounts_smudge $1 | \
+            db_smudge | \
+            framework_smudge | \
+            email_smudge
+            ;;
+        clean)
+            accounts_clean $1 | \
+            db_clean | \
+            framework_clean | \
+            email_clean
+            ;;
+    esac
+}
+GIT_INPUT=`cat; echo x`
+FILTERED_OUTPUT=$(printf '%s' "$GIT_INPUT" | filter)
+FILTERED_OUTPUT=${FILTERED_OUTPUT%x}
+printf '%s' "$FILTERED_OUTPUT"
