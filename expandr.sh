@@ -187,6 +187,7 @@ function email_clean() {
         -e "s|${ADMIN_EMAIL[$1]}|${ADMIN_EMAIL[0]}|g" $2
     fi
 }
+##uncomment the below commented section to cd to THIS script's dir, in case you want to include any files in its same directory (this was necessary on a Mac but some other systems have easier ways to do this)
 #TARGET_FILE=$0
 #cd `dirname $TARGET_FILE`
 #TARGET_FILE=`basename $TARGET_FILE`
