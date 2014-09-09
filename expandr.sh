@@ -175,15 +175,18 @@ function db_clean() {
 }
 function email_clean() {
     len=${#ADMIN_EMAIL[@]}
-    for (( i=1; i<${len}; i++ ));
-    do
+    ((len=len-1))
+    if [ $1 -lt ${len} ]
+    then
+    	i=$1
+    	((x=i+1))
         sed \
-        -e "s|${ADMIN_EMAIL[$i]}|${ADMIN_EMAIL[0]}|g"
-    done
+        -e "s|${ADMIN_EMAIL[$1]}|${ADMIN_EMAIL[0]}|g" $2 | email_clean $x
+    else
+		sed \
+        -e "s|${ADMIN_EMAIL[$1]}|${ADMIN_EMAIL[0]}|g" $2
+    fi
 }
-#
-#
-##uncomment the below commented section to cd to THIS script's dir, in case you want to include any files in its same directory (this was necessary on a Mac but some other systems have easier ways to do this)
 #TARGET_FILE=$0
 #cd `dirname $TARGET_FILE`
 #TARGET_FILE=`basename $TARGET_FILE`
@@ -252,7 +255,7 @@ function filter() {
             accounts_clean $1 | \
             db_clean | \
             framework_clean | \
-            email_clean
+            email_clean 1
             ;;
     esac
 }
