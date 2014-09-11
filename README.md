@@ -96,7 +96,7 @@ There are other approaches to this, of course, and you might already be thinking
 
 But let me just point out that you can have a different .gitattributes files on each branch, thus letting you keyword-swap differing sets of credentials and include paths, etc., on each branch.
 
-##**How to use expandr.sh
+##**How to use expandr.sh**
 
 First edit the script and put the sensitive values in at the [1] slot in the various appropriate arrays. Customize the variables and functions in the script to best fit your needs.
 
@@ -127,7 +127,7 @@ Options:
 		Designates that *the value of* a variable named ~ARGUMENT~_DB_DUMMY_NAME will be used as the dummy value that gets swapped in as the replacement
 		for the value of any occurrences of the variables LIVE_DB_NAME, TEST_DB_NAME, or STAGING_DB_NAME during the **clean** action.
 
-##**Example setup files:
+##**Example setup files:**
 
 Firstly my **.git/config** file I have:
 ```
@@ -156,6 +156,7 @@ Firstly my **.git/config** file I have:
 	driver = true
 [merge]
     renormalize = true
+```
 
 For example I maintain three branches, each with its own set of git filters.
 
