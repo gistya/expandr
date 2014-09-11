@@ -1,4 +1,4 @@
-#! /bin/sh -f
+#! /bin/bash -f
 #stride:
 #0-key (dummy name)
 #1-normal value for smudge
@@ -49,6 +49,13 @@ FRAMEWORK_DIR_STAGING="/insert/your/staging/path/here"
 FRAMEWORK_DIR_TEST="/insert/your/test/path/here"
 FRAMEWORK_DIR_OLD="/insert/a/previous/path/here/for/cleansing/"
 #
+###-DEFAULT-TITLE-###
+DEFAULT_TITLE[0]="@DEFAULT_TITLE@"
+DEFAULT_TITLE[1]="asdf"
+#
+#
+#
+#
 #
 ###-SED-ARGUMENTS-FUNCTIONS-###
 # these escape your values
@@ -70,10 +77,13 @@ function sed_replacement_escape() {
 #
 ###-SMUDGE-FUNCTIONS-###
 function framework_smudge() {
-    FRAMEWORK_PATH=$(echo FRAMEWORK_DIR_${BRANCH} | tr "[:lower:]" "[:upper:]")
-    sed \
-    -e "s|${FRAMEWORK_DIR_DUMMY_NAME}|${!FRAMEWORK_PATH}|g" \
-    $1
+	if [ $BRANCH ]
+	then
+		FRAMEWORK_PATH=$(echo FRAMEWORK_DIR_${BRANCH} | tr "[:lower:]" "[:upper:]")
+		sed \
+		-e "s|${FRAMEWORK_DIR_DUMMY_NAME}|${!FRAMEWORK_PATH}|g" \
+		$1
+	fi
 }
 function accounts_smudge_live() {
     sed \
@@ -82,6 +92,7 @@ function accounts_smudge_live() {
     -e "s|${LIVE_AWS_ACCESS_KEY_ID[0]}|${LIVE_AWS_ACCESS_KEY_ID[1]}|g" \
     -e "s|${LIVE_AWS_SECRET_ACCESS_KEY[0]}|$(sed_replacement_escape "${LIVE_AWS_SECRET_ACCESS_KEY[1]}")|g" \
     -e "s|${LIVE_APPLICATION_NAME[0]}|${LIVE_APPLICATION_NAME[1]}|g" \
+    -e "s|${LIVE_APPLICATION_VERSION[0]}|${LIVE_APPLICATION_VERSION[1]}|g" \
     -e "s|${LIVE_MERCHANT_ID[0]}|${LIVE_MERCHANT_ID[1]}|g" \
     $1
 }
@@ -92,6 +103,7 @@ function accounts_smudge_sandbox() {
     -e "s|${SANDBOX_AWS_ACCESS_KEY_ID[0]}|${SANDBOX_AWS_ACCESS_KEY_ID[1]}|g" \
     -e "s|${SANDBOX_AWS_SECRET_ACCESS_KEY[0]}|$(sed_replacement_escape "${SANDBOX_AWS_SECRET_ACCESS_KEY[1]}")|g" \
     -e "s|${SANDBOX_APPLICATION_NAME[0]}|${SANDBOX_APPLICATION_NAME[1]}|g" \
+    -e "s|${SANDBOX_APPLICATION_VERSION[0]}|${SANDBOX_APPLICATION_VERSION[1]}|g" \
     -e "s|${SANDBOX_MERCHANT_ID[0]}|${SANDBOX_MERCHANT_ID[1]}|g" \
     $1
 }
@@ -116,15 +128,30 @@ function accounts_smudge() {
     esac
 }
 function db_smudge() {
-    DB_REAL_NAME=$(echo ${DB} | tr "[:lower:]" "[:upper:]")_DB_NAME
-    sed \
-    -e "s|${MAIN_DB_DUMMY_NAME}|${!DB_REAL_NAME}|g" \
-    -e "s|${TESTS_DB_DUMMY_NAME}|${!DB_REAL_NAME}|g" \
-    $1
+	if [ $DB ]
+	then
+		DB_REAL_NAME=$(echo ${DB} | tr "[:lower:]" "[:upper:]")_DB_NAME
+		sed \
+		-e "s|${MAIN_DB_DUMMY_NAME}|${!DB_REAL_NAME}|g" \
+		-e "s|${TESTS_DB_DUMMY_NAME}|${!DB_REAL_NAME}|g" \
+		$1
+    fi
 }
 function email_smudge() {
-    sed \
-    -e "s|${ADMIN_EMAIL[0]}|${ADMIN_EMAIL[1]}|g"
+	if [ ${ADMIN_EMAIL[1]} ]
+	then
+		sed \
+		-e "s|${ADMIN_EMAIL[0]}|${ADMIN_EMAIL[1]}|g" \
+		$1
+	fi
+}
+function title_smudge() {
+	if [ ${DEFAULT_TITLE[1]} ]
+	then
+		sed \
+		-e "s|${DEFAULT_TITLE[0]}|${DEFAULT_TITLE[1]}|g" \
+		$1
+    fi
 }
 #
 #
@@ -148,6 +175,7 @@ function accounts_clean_live() {
     -e "s|${LIVE_AWS_ACCESS_KEY_ID[1]}|${LIVE_AWS_ACCESS_KEY_ID[0]}|g" \
     -e "s|$(sed_keyword_escape "${LIVE_AWS_SECRET_ACCESS_KEY[1]}")|${LIVE_AWS_SECRET_ACCESS_KEY[0]}|g" \
     -e "${LIVE_APPLICATION_NAME[2]:-""}s|${LIVE_APPLICATION_NAME[1]}|${LIVE_APPLICATION_NAME[0]}|g" \
+    -e "s|${LIVE_APPLICATION_VERSION[1]}|${LIVE_APPLICATION_VERSION[0]}|g" \
     -e "s|${LIVE_MERCHANT_ID[1]}|${LIVE_MERCHANT_ID[0]}|g" \
     $1
 }
@@ -158,20 +186,44 @@ function accounts_clean_sandbox() {
     -e "s|${SANDBOX_AWS_ACCESS_KEY_ID[1]}|${SANDBOX_AWS_ACCESS_KEY_ID[0]}|g" \
     -e "s|$(sed_keyword_escape "${SANDBOX_AWS_SECRET_ACCESS_KEY[1]}")|${SANDBOX_AWS_SECRET_ACCESS_KEY[0]}|g" \
     -e "s|${SANDBOX_APPLICATION_NAME[1]}|${SANDBOX_APPLICATION_NAME[0]}|g" \
+    -e "s|${SANDBOX_APPLICATION_VERSION[1]}|${SANDBOX_APPLICATION_VERSION[0]}|g" \
     -e "s|${SANDBOX_MERCHANT_ID[1]}|${SANDBOX_MERCHANT_ID[0]}|g" \
     $1
 }
 function accounts_clean() {
-    accounts_clean_live $1 | \
-    accounts_clean_sandbox
+    case ${ACCOUNTS} in
+        live)
+            accounts_clean_live $1
+            ;;
+        staging)
+            accounts_clean_sandbox $1
+            ;;
+        test)
+            accounts_clean_sandbox $1
+            ;;
+        sandbox)
+            accounts_clean_sandbox $1
+            ;;
+        both)
+            accounts_clean_live $1 | \
+            accounts_clean_sandbox
+            ;;
+        *)
+            accounts_clean_live $1 | \
+            accounts_clean_sandbox
+            ;;
+    esac
 }
 function db_clean() {
-    DB_DUMMY_NAME=$(echo ${DOMAIN} | tr "[:lower:]" "[:upper:]")_DB_DUMMY_NAME
-    sed \
-    -e "s|${LIVE_DB_NAME}|${!DB_DUMMY_NAME}|g" \
-    -e "s|${STAGING_DB_NAME}|${!DB_DUMMY_NAME}|g" \
-    -e "s|${TEST_DB_NAME}|${!DB_DUMMY_NAME}|g" \
-    $1
+	if [ $DOMAIN ]
+	then
+		DB_DUMMY_NAME=$(echo ${DOMAIN} | tr "[:lower:]" "[:upper:]")_DB_DUMMY_NAME
+		sed \
+		-e "s|${LIVE_DB_NAME}|${!DB_DUMMY_NAME}|g" \
+		-e "s|${STAGING_DB_NAME}|${!DB_DUMMY_NAME}|g" \
+		-e "s|${TEST_DB_NAME}|${!DB_DUMMY_NAME}|g" \
+		$1
+    fi
 }
 function email_clean() {
     len=${#ADMIN_EMAIL[@]}
@@ -185,6 +237,14 @@ function email_clean() {
     else
 		sed \
         -e "s|${ADMIN_EMAIL[$1]}|${ADMIN_EMAIL[0]}|g" $2
+    fi
+}
+function title_clean() {
+	if [ ${DEFAULT_TITLE[0]} ]
+	then
+		sed \
+		-e "s|${DEFAULT_TITLE[1]}|${DEFAULT_TITLE[0]}|g" \
+		$1
     fi
 }
 ##uncomment the below commented section to cd to THIS script's dir, in case you want to include any files in its same directory (this was necessary on a Mac but some other systems have easier ways to do this)
@@ -250,13 +310,15 @@ function filter() {
             accounts_smudge $1 | \
             db_smudge | \
             framework_smudge | \
-            email_smudge
+            email_smudge | \
+            title_smudge
             ;;
         clean)
             accounts_clean $1 | \
             db_clean | \
             framework_clean | \
-            email_clean 1
+            email_clean 1 | \
+            title_clean
             ;;
     esac
 }
