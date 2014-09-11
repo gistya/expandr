@@ -186,9 +186,6 @@ tests/config/app.php filter=tests_config_test
 .gitattributes merge=ours
 ```
 
-
-```
-
 (The merge commands are there to reduce headaches. Trust me. ;D) Also of course there are other things in my git config file than just the above, but the above are the only parts relevant to keyword expansion.
 
 Lastly the shell script itself is **expandr.sh**.
